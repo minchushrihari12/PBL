@@ -1,0 +1,8 @@
+# computes 7 + 5, stores it at address 12 and prints it
+DATA 10 7
+DATA 11 5
+LOAD 10
+ADD 11
+STORE 12
+OUTPUT
+HALT
