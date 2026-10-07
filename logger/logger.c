@@ -34,6 +34,7 @@ static const char *level_name(log_level_t lvl)
     switch (lvl) {
         case LOG_INFO:  return "INFO";
         case LOG_ERROR: return "ERROR";
+        case LOG_QUIT:  return "QUIT";
         default:        return "UNKNOWN";
     }
 }
@@ -83,11 +84,7 @@ int main(void)
     sigaction(SIGTERM, &sa, NULL);
 
     /* Queue Core sends to (create if Core hasn't started yet) */
-    struct mq_attr in_attr;
-    memset(&in_attr, 0, sizeof(in_attr));
-    in_attr.mq_maxmsg  = Q_MAXMSG;
-    in_attr.mq_msgsize = sizeof(log_msg_t);
-    mqd_t inq = mq_open(Q_LOG, O_CREAT | O_RDONLY, 0666, &in_attr);
+    mqd_t inq = ipc_open_queue(Q_LOG, O_RDONLY, sizeof(log_msg_t));
     if (inq == (mqd_t)-1) { perror("mq_open " Q_LOG); return 1; }
 
     /* Internal queue to the writer; create BEFORE fork */
@@ -124,9 +121,6 @@ int main(void)
             break;
         }
 
-        if (msg.level == LOG_QUIT)
-            break;
-
         msg.text[TEXT_LEN - 1] = '\0';
 
         /* Use the timestamp Core attached to the event */
@@ -151,6 +145,9 @@ int main(void)
             running = 0;
             break;
         }
+
+        if (msg.level == LOG_QUIT)      /* logged first, then stop */
+            break;
     }
 
     printf("\nLogger shutting down, flushing remaining messages...\n");
