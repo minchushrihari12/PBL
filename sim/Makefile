@@ -1,16 +1,21 @@
-CC      = gcc
-CFLAGS  = -Wall -Wextra -Wno-format-truncation -O2
-LDLIBS  = -lrt
-BINS    = logger core_process ui_process
-
-all: $(BINS)
-
-%: %.c ipc_defs.h
-	$(CC) $(CFLAGS) -o $@ $< $(LDLIBS)
-
+CC     = gcc
+CFLAGS = -Wall -Wextra -pthread
+LIBS   = -lrt
+ 
+all: ui core logger test_scheduler
+ 
+ui: ui.c ipc_defs.h
+	$(CC) $(CFLAGS) ui.c -o ui $(LIBS)
+ 
+core: core.c cpu.c cpu.h scheduler.c scheduler.h ipc_defs.h
+	$(CC) $(CFLAGS) core.c cpu.c scheduler.c -o core $(LIBS)
+ 
+logger: logger.c ipc_defs.h
+	$(CC) $(CFLAGS) logger.c -o logger $(LIBS)
+ 
+test_scheduler: test_scheduler.c scheduler.c scheduler.h ipc_defs.h
+	$(CC) $(CFLAGS) test_scheduler.c scheduler.c -o test_scheduler $(LIBS)
+ 
 clean:
-	rm -f $(BINS)
-
-# remove leftover queues from a crashed run / older build
-clean-queues:
-	rm -f /dev/mqueue/sim_cmd /dev/mqueue/sim_res /dev/mqueue/sim_log /dev/mqueue/sim_log_disk
+	rm -f ui core logger test_scheduler
+ 
