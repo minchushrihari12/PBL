@@ -1,52 +1,105 @@
-#define _POSIX_C_SOURCE 200809L
+/* logger.c : the Logger process.
+   Receives log messages from Core (queue Q_LOG) and writes them to
+   simulator.log (everything) and errors.log (errors only).
+
+   Build: gcc -Wall -Wextra logger.c -o logger -lrt -pthread
+
+   Threads:  receiver thread : mq_receive -> puts messages in a ring buffer
+             main thread     : writer, takes messages out and writes to disk
+   So slow disk writes never stop the queue from being emptied. */
+
+#include <errno.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include <mqueue.h>
-
 #include "ipc_defs.h"
 
-/* Fill one log_msg_t and send it. Returns 0 on success, -1 on failure. */
-static int send_log(mqd_t q, log_level_t level, const char *text)
-{
-    log_msg_t msg;
-    memset(&msg, 0, sizeof(msg));             /* always clear the struct first */
-    msg.level = level;
-    msg.timestamp = time(NULL);               /* current time */
-    strncpy(msg.text, text, TEXT_LEN - 1);    /* copy at most TEXT_LEN-1 chars */
+#define LBUF_SIZE 256
 
-    if (mq_send(q, (const char *)&msg, sizeof(msg), 0) == -1) {
-        perror("fake_core: mq_send");
-        return -1;
+static mqd_t q;
+static log_msg_t lbuf[LBUF_SIZE];
+static int lb_head, lb_tail, lb_count;
+static pthread_mutex_t lb_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t  lb_not_empty = PTHREAD_COND_INITIALIZER;
+static pthread_cond_t  lb_not_full  = PTHREAD_COND_INITIALIZER;
+
+static void *receiver_thread(void *arg) {
+    log_msg_t m;
+    (void)arg;
+    for (;;) {
+        memset(&m, 0, sizeof m);
+        if (mq_receive(q, (char *)&m, sizeof m, NULL) == -1) {
+            if (errno == EINTR) continue;
+            perror("logger: mq_receive");
+            memset(&m, 0, sizeof m);
+            m.level = LOG_QUIT;                 /* fatal: shut down */
+        }
+        pthread_mutex_lock(&lb_lock);
+        while (lb_count == LBUF_SIZE) pthread_cond_wait(&lb_not_full, &lb_lock);
+        lbuf[lb_tail] = m;
+        lb_tail = (lb_tail + 1) % LBUF_SIZE;
+        lb_count++;
+        pthread_cond_signal(&lb_not_empty);
+        pthread_mutex_unlock(&lb_lock);
+        if (m.level == LOG_QUIT) break;
     }
-    return 0;
+    return NULL;
 }
 
-int main(void)
-{
-    ipc_print_info("fake_core");
+int main(void) {
+    FILE *fl, *fe;
+    pthread_t rt;
+    long total = 0, errors = 0;
+    char ts[32];
+    time_t now;
+    struct tm tmv;
 
-    /* Open the log queue for sending only (macro from ipc_defs.h) */
-    mqd_t q = IPC_OPEN_LOG(O_WRONLY);
+    ipc_print_info("logger");
+    q = IPC_OPEN_LOG(O_RDONLY);
 
-    char text[TEXT_LEN];
+    fl = fopen("simulator.log", "a");
+    if (!fl) { perror("logger: cannot open simulator.log"); return 1; }
+    fe = fopen("errors.log", "a");
+    if (!fe) { perror("logger: cannot open errors.log"); fclose(fl); return 1; }
 
-    /* 1000 INFO messages: "test message 0" ... "test message 999" */
-    for (int i = 0; i < 1000; i++) {
-        snprintf(text, sizeof(text), "test message %d", i);
-        if (send_log(q, LOG_INFO, text) == -1) { mq_close(q); return 1; }
+    if (pthread_create(&rt, NULL, receiver_thread, NULL) != 0) { perror("pthread_create"); return 1; }
+
+    for (;;) {
+        log_msg_t m;
+        const char *lvl;
+
+        pthread_mutex_lock(&lb_lock);
+        while (lb_count == 0) pthread_cond_wait(&lb_not_empty, &lb_lock);
+        m = lbuf[lb_head];
+        lb_head = (lb_head + 1) % LBUF_SIZE;
+        lb_count--;
+        pthread_cond_signal(&lb_not_full);
+        pthread_mutex_unlock(&lb_lock);
+
+        if (m.level == LOG_QUIT) break;
+
+        lvl = (m.level == LOG_ERROR) ? "ERROR" : "INFO";
+        localtime_r(&m.timestamp, &tmv);
+        strftime(ts, sizeof ts, "%H:%M:%S", &tmv);
+        m.text[TEXT_LEN - 1] = '\0';
+        fprintf(fl, "[%s] %s: %s\n", ts, lvl, m.text);
+        fflush(fl);
+        total++;
+        if (m.level == LOG_ERROR) {
+            fprintf(fe, "[%s] ERROR: %s\n", ts, m.text);
+            fflush(fe);
+            errors++;
+        }
     }
 
-    /* 5 ERROR messages */
-    for (int i = 0; i < 5; i++) {
-        snprintf(text, sizeof(text), "test error %d", i);
-        if (send_log(q, LOG_ERROR, text) == -1) { mq_close(q); return 1; }
-    }
-
-    /* Tell the Logger to stop */
-    if (send_log(q, LOG_QUIT, "quit") == -1) { mq_close(q); return 1; }
-
+    now = time(NULL);
+    localtime_r(&now, &tmv);
+    strftime(ts, sizeof ts, "%H:%M:%S", &tmv);
+    fprintf(fl, "[%s] INFO: logger summary: %ld messages, %ld errors\n", ts, total, errors);
+    fclose(fl);
+    fclose(fe);
+    pthread_join(rt, NULL);
     mq_close(q);
-    printf("fake_core: sent 1000 INFO, 5 ERROR, 1 QUIT\n");
     return 0;
 }
