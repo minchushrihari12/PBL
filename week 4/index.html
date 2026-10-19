@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deadlock Simulation System</title>
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--fg:#1b2130;--mut:#667085;--line:#dde1e8;--acc:#2456d6;--ok:#12803f;--warn:#b86e00;--bad:#c62828;--okbg:#e4f5ea;--warnbg:#fff0d6;--badbg:#fde5e5;--field:#f9fafb}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1218;--card:#181d28;--fg:#e7eaf1;--mut:#8f98ab;--line:#2a3144;--acc:#7aa2ff;--ok:#43d08a;--warn:#f2b24d;--bad:#ff7070;--okbg:#10301f;--warnbg:#3a2c10;--badbg:#411a1a;--field:#121722}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{display:flex;align-items:center;gap:16px;padding:14px 22px;border-bottom:1px solid var(--line);background:var(--card);position:sticky;top:0;z-index:5}
+h1{font-size:18px;margin:0;font-weight:650;letter-spacing:.2px}
+h2{font-size:15px;margin:0 0 10px;font-weight:650}
+h3{font-size:13px;margin:14px 0 6px;color:var(--mut);font-weight:600}
+.pill{margin-left:auto;padding:5px 14px;border-radius:99px;font-weight:650;border:1px solid var(--line);background:var(--field)}
+.pill.SAFE{color:var(--ok);background:var(--okbg);border-color:var(--ok)}
+.pill.UNSAFE,.pill.INVALID{color:var(--warn);background:var(--warnbg);border-color:var(--warn)}
+.pill.DEADLOCK{color:var(--bad);background:var(--badbg);border-color:var(--bad)}
+#banner{margin:14px 22px 0;padding:9px 14px;border-radius:8px;border:1px solid var(--line);background:var(--card);min-height:38px}
+#banner.ok{border-color:var(--ok);background:var(--okbg)} #banner.err{border-color:var(--bad);background:var(--badbg)}
+main{display:grid;grid-template-columns:repeat(auto-fit,minmax(440px,1fr));gap:14px;padding:14px 22px 30px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px}
+.wide{grid-column:1/-1}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:8px 0}
+label{display:inline-flex;gap:6px;align-items:center;color:var(--mut)}
+input,select{background:var(--field);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:5px 6px;font:inherit}
+input[type=number]{width:54px;text-align:center;font-variant-numeric:tabular-nums}
+button{background:var(--acc);color:#fff;border:0;border-radius:6px;padding:7px 13px;font:inherit;font-weight:600;cursor:pointer}
+button.ghost{background:transparent;color:var(--fg);border:1px solid var(--line)}
+button.danger{background:var(--bad)} button.dirty{outline:3px solid var(--warn)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{border:1px solid var(--line);padding:4px 7px;text-align:center}
+th{background:var(--field);font-weight:600;color:var(--mut)}
+td.name{font-weight:650;text-align:left}
+tr.gone td{opacity:.45;text-decoration:line-through}
+td.dead{color:var(--bad);font-weight:700} td.wait{color:var(--warn);font-weight:700}
+.mut{color:var(--mut)} .bad{color:var(--bad)}
+.bar{height:9px;background:var(--field);border:1px solid var(--line);border-radius:5px;overflow:hidden;width:180px}
+.bar>span{display:block;height:100%;background:var(--acc)}
+.log{max-height:220px;overflow:auto;font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;background:var(--field);border:1px solid var(--line);border-radius:6px;padding:8px}
+.log div{padding:1px 0}
+svg{width:100%;height:auto;max-height:520px}
+.pn{fill:var(--field);stroke:var(--fg);stroke-width:2} .pn.dead{stroke:var(--bad);fill:var(--badbg);stroke-width:3} .pn.gone{opacity:.35}
+.rn{fill:var(--field);stroke:var(--acc);stroke-width:2}
+.t{fill:var(--fg);font:600 13px system-ui,sans-serif;text-anchor:middle;dominant-baseline:central}
+.lbl{fill:var(--mut);font:11px system-ui,sans-serif}
+.ea{stroke:var(--ok);stroke-width:2;fill:none} .eq{stroke:var(--warn);stroke-width:2;stroke-dasharray:6 4;fill:none} .eq.dead{stroke:var(--bad)}
+#ah{fill:var(--ok)} #rh{fill:var(--warn)} #dh{fill:var(--bad)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Deadlock Simulation System</h1>
+  <span id="pill" class="pill">connecting</span>
+</header>
+<div id="banner">Connecting to the core process.</div>
+
+<main>
+  <section class="card">
+    <h2>Set up the system</h2>
+    <div class="row">
+      <label>Processes <input id="np" type="number" min="1" max="10" value="5"></label>
+      <label>Resource types <input id="nr" type="number" min="1" max="10" value="3"></label>
+      <button onclick="setup()">Create</button>
+    </div>
+    <div class="row">
+      <span class="mut">Load an example:</span>
+      <button class="ghost" onclick="cmd('SCENARIO 1')">Safe state</button>
+      <button class="ghost" onclick="cmd('SCENARIO 2')">Unsafe state</button>
+      <button class="ghost" onclick="cmd('SCENARIO 3')">Deadlock</button>
+      <button class="ghost" onclick="cmd('RESET')">Reset</button>
+    </div>
+    <h3>Resource vectors</h3>
+    <div id="vec" class="scroll"></div>
+  </section>
+
+  <section class="card">
+    <h2>Run the algorithms</h2>
+    <div id="reqform"><span class="mut">Create a system first.</span></div>
+    <h3>Analyse and recover</h3>
+    <div class="row">
+      <button onclick="cmd('BANKER')">Run Banker's algorithm</button>
+      <button onclick="cmd('DETECT')">Detect deadlock</button>
+    </div>
+    <div class="row">
+      <button class="danger" onclick="cmd('RECOVER 1')">Recover: terminate processes</button>
+      <button class="danger" onclick="cmd('RECOVER 2')">Recover: preempt resources</button>
+    </div>
+  </section>
+
+  <section class="card wide">
+    <h2>Allocation, Maximum, Need and pending requests</h2>
+    <div id="tbl" class="scroll"></div>
+    <div class="row">
+      <button id="apply" onclick="apply()">Apply changes</button>
+      <span class="mut">Edit Total, Allocation or Maximum, then apply. Need and Available are calculated.</span>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Resource Allocation Graph</h2>
+    <div id="rag"></div>
+  </section>
+
+  <section class="card">
+    <h2>System status</h2>
+    <div id="info"></div>
+    <h3>Resource utilization</h3>
+    <div id="util"></div>
+    <h3>Event log</h3>
+    <div id="log" class="log"></div>
+  </section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+let G = null, tblKey = '', formKey = '';
+
+async function cmd(c) {
+  let j;
+  try { j = await (await fetch('/api?cmd=' + encodeURIComponent(c))).json(); }
+  catch (e) { j = { ok: 0, msg: 'Cannot reach the UI server. Is ./ui still running?' }; }
+  if (j.np !== undefined) G = j;
+  const b = $('banner');
+  b.className = j.ok ? 'ok' : 'err';
+  b.textContent = j.msg || '';
+  (j.events || []).forEach(addLog);
+  if (G) render();
+  return j;
+}
+
+function addLog(t) {
+  const d = document.createElement('div');
+  d.textContent = t;
+  $('log').appendChild(d);
+  $('log').scrollTop = 1e9;
+}
+
+function setup() { cmd('SETUP ' + (parseInt($('np').value) || 1) + ' ' + (parseInt($('nr').value) || 1)); }
+
+function collect(k) {
+  return [...document.querySelectorAll(`input[data-k="${k}"]`)].map(e => Math.max(0, parseInt(e.value) || 0));
+}
+
+async function apply() {
+  const t = collect('t'), a = collect('a'), m = collect('m');
+  await cmd('TOTAL ' + t.join(' '));
+  await cmd('ALLOCALL ' + a.join(' '));
+  await cmd('MAXALL ' + m.join(' '));
+  $('apply').classList.remove('dirty');
+}
+
+function sendReq() {
+  const v = [...Array(G.nr)].map((_, j) => parseInt($('rq' + j).value) || 0);
+  cmd($('rm').value + ' ' + $('rp').value + ' ' + v.join(' '));
+}
+
+const num = (k, i, j, v, off) => `<td><input type="number" min="0" data-k="${k}" value="${v}" ${off ? 'disabled' : ''}></td>`;
+
+function render() {
+  const s = G;
+  $('pill').textContent = s.status === 'EMPTY' ? 'No system' : s.status === 'DEADLOCK' ? 'Deadlocked' : s.status === 'SAFE' ? 'Safe' : s.status === 'UNSAFE' ? 'Unsafe' : 'Check matrices';
+  $('pill').className = 'pill ' + s.status;
+  renderTables(s); renderForm(s); renderRag(s); renderInfo(s);
+}
+
+function renderTables(s) {
+  const key = JSON.stringify([s.np, s.nr, s.total, s.alloc, s.max, s.req, s.active, s.dead]);
+  if (key === tblKey) return;
+  tblKey = key;
+  if (s.np === 0) { $('vec').innerHTML = '<span class="mut">Nothing yet. Create a system or load an example.</span>'; $('tbl').innerHTML = ''; return; }
+  const R = [...Array(s.nr).keys()], P = [...Array(s.np).keys()];
+  const hdr = R.map(j => `<th>R${j}</th>`).join('');
+  $('vec').innerHTML = `<table><tr><th></th>${hdr}</tr>
+    <tr><td class="name">Total</td>${R.map(j => num('t', 0, j, s.total[j])).join('')}</tr>
+    <tr><td class="name">Available</td>${s.avail.map(v => `<td class="${v < 0 ? 'dead' : ''}">${v}</td>`).join('')}</tr></table>`;
+  let h = `<table><tr><th rowspan="2">Process</th><th colspan="${s.nr}">Allocation</th><th colspan="${s.nr}">Maximum</th><th colspan="${s.nr}">Need</th><th colspan="${s.nr}">Pending request</th><th rowspan="2"></th></tr><tr>${hdr + hdr + hdr + hdr}</tr>`;
+  for (const i of P) {
+    const off = !s.active[i], dd = s.dead.includes(i);
+    h += `<tr class="${off ? 'gone' : ''}"><td class="name ${dd ? 'dead' : ''}">P${i}${off ? ' (done)' : dd ? ' (deadlocked)' : ''}</td>`
+      + R.map(j => num('a', i, j, s.alloc[i][j], off)).join('')
+      + R.map(j => num('m', i, j, s.max[i][j], off)).join('')
+      + s.need[i].map(v => `<td>${v}</td>`).join('')
+      + s.req[i].map(v => `<td class="${v ? 'wait' : ''}">${v}</td>`).join('')
+      + `<td>${off ? '' : `<button class="ghost" onclick="cmd('TERMINATE ${i}')">Finish</button>`}</td></tr>`;
+  }
+  $('tbl').innerHTML = h + '</table>';
+  document.querySelectorAll('#vec input,#tbl input').forEach(e => e.oninput = () => $('apply').classList.add('dirty'));
+}
+
+function renderForm(s) {
+  const key = JSON.stringify([s.np, s.nr, s.active]);
+  if (key === formKey) return;
+  formKey = key;
+  if (s.np === 0) { $('reqform').innerHTML = '<span class="mut">Create a system first.</span>'; return; }
+  let h = '<h3>Request resources</h3><div class="row"><label>Process <select id="rp">'
+    + s.active.map((a, i) => a ? `<option value="${i}">P${i}</option>` : '').join('') + '</select></label>';
+  for (let j = 0; j < s.nr; j++) h += `<label>R${j} <input id="rq${j}" type="number" min="0" value="0"></label>`;
+  h += `</div><div class="row"><label>Mode <select id="rm"><option value="REQUEST">Banker's avoidance</option>
+    <option value="REQUESTRAW">No avoidance (may deadlock)</option></select></label>
+    <button onclick="sendReq()">Send request</button></div>`;
+  $('reqform').innerHTML = h;
+}
+
+function renderInfo(s) {
+  const nm = l => l.map(i => 'P' + i).join(', ');
+  let h = '';
+  if (s.status === 'SAFE') h = `<p><b>Safe.</b> All processes can finish.<br>Safe sequence: <b>${s.seq.map(i => 'P' + i).join(' \u2192 ')}</b></p>`;
+  else if (s.status === 'UNSAFE') h = '<p><b>Unsafe.</b> No safe sequence exists, so the system cannot guarantee every process can finish. Nothing is blocked yet.</p>';
+  else if (s.status === 'DEADLOCK') h = `<p class="bad"><b>Deadlocked:</b> ${nm(s.dead)}. Each is waiting for a resource another one holds.</p>`;
+  else if (s.status === 'INVALID') h = `<p class="bad">${s.error}</p>`;
+  else h = '<p class="mut">Create a system or load an example to begin.</p>';
+  $('info').innerHTML = h;
+  $('util').innerHTML = s.util.length ? s.util.map((u, j) =>
+    `<div class="row"><span style="width:28px">R${j}</span><div class="bar"><span style="width:${Math.min(100, Math.max(0, u))}%"></span></div><span class="mut">${u}% in use (${s.total[j] - s.avail[j]} of ${s.total[j]})</span></div>`).join('')
+    : '<span class="mut">-</span>';
+}
+
+function renderRag(s) {
+  if (!s.np) { $('rag').innerHTML = '<span class="mut">No system yet.</span>'; return; }
+  const n = Math.max(s.np, s.nr), H = Math.max(260, n * 62 + 40), W = 520;
+  const yp = i => s.np === 1 ? H / 2 : 40 + i * (H - 80) / (s.np - 1);
+  const yr = j => s.nr === 1 ? H / 2 : 40 + j * (H - 80) / (s.nr - 1);
+  let e = `<defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z"/></marker>
+    <marker id="rh" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z"/></marker>
+    <marker id="dh" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>`;
+  for (let i = 0; i < s.np; i++) for (let j = 0; j < s.nr; j++) {
+    const a = s.alloc[i][j], q = s.req[i][j], d = s.dead.includes(i);
+    if (a > 0) {
+      e += `<line class="ea" x1="400" y1="${yr(j)}" x2="114" y2="${yp(i)}" marker-end="url(#ah)"/>`;
+      if (a > 1) e += `<text class="lbl" x="${114 + 284 * .16}" y="${yp(i) + (yr(j) - yp(i)) * .16 - 4}">${a}</text>`;
+    }
+    if (q > 0) {
+      e += `<line class="eq ${d ? 'dead' : ''}" x1="110" y1="${yp(i) + 7}" x2="398" y2="${yr(j) + 7}" marker-end="url(#${d ? 'dh' : 'rh'})"/>`;
+    }
+  }
+  for (let i = 0; i < s.np; i++) {
+    const cls = (s.dead.includes(i) ? ' dead' : '') + (s.active[i] ? '' : ' gone');
+    e += `<circle class="pn${cls}" cx="90" cy="${yp(i)}" r="22"/><text class="t" x="90" y="${yp(i)}">P${i}</text>`;
+  }
+  for (let j = 0; j < s.nr; j++)
+    e += `<rect class="rn" x="402" y="${yr(j) - 18}" width="84" height="36" rx="5"/><text class="t" x="444" y="${yr(j)}">R${j}  \u00d7${s.total[j]}</text>`;
+  e += `<g class="lbl"><text x="8" y="${H - 8}">Solid green: resource held by process. Dashed: process waiting for resource. Red: deadlocked.</text></g>`;
+  $('rag').innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Resource allocation graph">${e}</svg>`;
+}
+
+cmd('STATE');
+</script>
+</body>
+</html>
