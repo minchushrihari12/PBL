@@ -1,0 +1,7 @@
+core
+logger
+ui
+test_deadlock
+*.o
+*.log
+.DS_Store
