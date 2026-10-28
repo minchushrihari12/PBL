@@ -6,4 +6,4 @@ trap 'kill 0' INT TERM EXIT
 ./core &
 ./logger &
 sleep 1
-python3 server.py
+./server
