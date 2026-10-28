@@ -1,24 +1,29 @@
-# Page Replacement Simulator
+# Page Replacement Simulator (Week 5)
 
-FIFO, LRU and Optimal in C, compiled to WebAssembly, shown on a website.
+FIFO, LRU and Optimal page replacement in C. The processes talk through POSIX message queues,
+and a website shows the results.
 
+## How it works
+1. The website calls `/run` on `server.py`.
+2. `server.py` runs `mqclient`, which sends a request to the **core** process on the `/pr_req` queue.
+3. **core** runs the algorithms and sends the JSON result back on the client's reply queue (in chunks).
+4. **core** also sends a log line to the **logger** process, which writes `simulation.log`.
+
+## Files and owners
 | File | Owner |
 |---|---|
 | `algorithms.h` | Shared contract, do not change |
 | `fifo.c`, `lru.c` | Member 1 |
 | `optimal.c`, `test.c` | Member 2 |
-| `index.html`, `style.css`, `app.js` | Member 3 |
-| `main_wasm.c`, `build.sh`, `sample.json` | Team leader |
+| `web/index.html`, `web/style.css`, `web/app.js` | Member 3 |
+| `protocol.h`, `simulation.h`, `simulation.c`, `core.c`, `logger.c`, `mqclient.c`, `server.py`, `Makefile`, `run.sh`, `Dockerfile` | Team leader |
 
-## Test the C core (no browser)
-    gcc test.c main_wasm.c fifo.c lru.c optimal.c -o test && ./test
+## Run (Linux only; use Docker on Mac)
+    docker build -t pr-sim .
+    docker run --rm -p 8000:8000 pr-sim
+Then open http://localhost:8000. On Linux or Codespaces you can run `./run.sh` instead.
 
-## Build and run the website
-    ./build.sh                    # needs Emscripten
-    python3 -m http.server 8000   # open http://localhost:8000
+## Test the algorithms
+    make test
 
-Browsers block .wasm on file://, so always use the local server.
-Without sim.js the page falls back to sample.json (dev mode).
-
-## Sample check
-`7 0 1 2 0 3 0 4 2 3`, 3 frames: FIFO 9 faults, LRU 8, Optimal 6.
+Sample check: `7 0 1 2 0 3 0 4 2 3`, 3 frames gives FIFO 9 faults, LRU 8, Optimal 6.
