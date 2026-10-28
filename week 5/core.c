@@ -10,6 +10,7 @@
 #include <mqueue.h>
 #include "protocol.h"
 #include "simulation.h"
+#include "page.h"
 
 static volatile sig_atomic_t running = 1;
 static void stop(int s) { (void)s; running = 0; }
@@ -64,12 +65,16 @@ int main(void) {
         if (strncmp(rq->reply_q, REPLY_PREFIX, strlen(REPLY_PREFIX)) != 0 || strchr(rq->reply_q + 1, '/'))
             continue;
 
-        const char *json = run_simulation(rq->refs, rq->frames, rq->algo);
-        send_reply(rq->reply_q, json);
+        static Result results[3];
+        const char *names[3];
+        int refs[MAX_REFS], n = 0, count = 0;
+        const char *err = run_all(rq->refs, rq->frames, rq->algo, refs, &n, results, names, &count);
+        const char *html = page_render(rq->refs, rq->frames, rq->algo, err, refs, n, results, names, count);
+        send_reply(rq->reply_q, html);
 
         char line[256];
         snprintf(line, sizeof line, "algo=%d frames=%d refs=\"%.120s\" -> %s",
-                 rq->algo, rq->frames, rq->refs, strstr(json, "\"ok\":true") ? "ok" : "invalid input");
+                 rq->algo, rq->frames, rq->refs, err ? "invalid input" : "ok");
         send_log(line);
     }
     mq_close(req); mq_unlink(REQ_Q);
