@@ -1,0 +1,437 @@
+
+##########################################################
+# Test case 1: staggered arrivals, no idle time
+##########################################################
+
+Processes (lower priority number = higher priority):
+  PID   Arrival  Burst  Priority
+  P1    0        8      3       
+  P2    1        4      1       
+  P3    2        9      4       
+  P4    3        5      2       
+
+
+==================== FCFS ====================
+Gantt chart:
+  +--------------+--------+--------------+----------+
+  |      P1      |   P2   |      P3      |    P4    |
+  +--------------+--------+--------------+----------+
+  0              8        12             21         26
+
+  PID   AT   BT   PR   CT   TAT   WT   RT  
+  P1    0    8    3    8    8     0    0   
+  P2    1    4    1    12   11    7    7   
+  P3    2    9    4    21   19    10   10  
+  P4    3    5    2    26   23    18   18  
+
+  Average waiting time    : 8.75
+  Average turnaround time : 15.25
+  Average response time   : 8.75
+  CPU utilization         : 100.00%  (busy 26, idle 0, total 26)
+  CPU usage               : [####################]
+
+==================== SJF (Non-preemptive) ====================
+Gantt chart:
+  +--------------+--------+----------+--------------+
+  |      P1      |   P2   |    P4    |      P3      |
+  +--------------+--------+----------+--------------+
+  0              8        12         17             26
+
+  PID   AT   BT   PR   CT   TAT   WT   RT  
+  P1    0    8    3    8    8     0    0   
+  P2    1    4    1    12   11    7    7   
+  P3    2    9    4    26   24    15   15  
+  P4    3    5    2    17   14    9    9   
+
+  Average waiting time    : 7.75
+  Average turnaround time : 14.25
+  Average response time   : 7.75
+  CPU utilization         : 100.00%  (busy 26, idle 0, total 26)
+  CPU usage               : [####################]
+
+==================== SJF (Preemptive / SRTF) ====================
+Gantt chart:
+  +----+--------+----------+--------------+--------------+
+  | P1 |   P2   |    P4    |      P1      |      P3      |
+  +----+--------+----------+--------------+--------------+
+  0    1        5          10             17             26
+
+  PID   AT   BT   PR   CT   TAT   WT   RT  
+  P1    0    8    3    17   17    9    0   
+  P2    1    4    1    5    4     0    0   
+  P3    2    9    4    26   24    15   15  
+  P4    3    5    2    10   7     2    2   
+
+  Average waiting time    : 6.50
+  Average turnaround time : 13.00
+  Average response time   : 4.25
+  CPU utilization         : 100.00%  (busy 26, idle 0, total 26)
+  CPU usage               : [####################]
+
+==================== Priority (Non-preemptive) ====================
+Gantt chart:
+  +--------------+--------+----------+--------------+
+  |      P1      |   P2   |    P4    |      P3      |
+  +--------------+--------+----------+--------------+
+  0              8        12         17             26
+
+  PID   AT   BT   PR   CT   TAT   WT   RT  
+  P1    0    8    3    8    8     0    0   
+  P2    1    4    1    12   11    7    7   
+  P3    2    9    4    26   24    15   15  
+  P4    3    5    2    17   14    9    9   
+
+  Average waiting time    : 7.75
+  Average turnaround time : 14.25
+  Average response time   : 7.75
+  CPU utilization         : 100.00%  (busy 26, idle 0, total 26)
+  CPU usage               : [####################]
+
+==================== Priority (Preemptive) ====================
+Gantt chart:
+  +----+--------+----------+--------------+--------------+
+  | P1 |   P2   |    P4    |      P1      |      P3      |
+  +----+--------+----------+--------------+--------------+
+  0    1        5          10             17             26
+
+  PID   AT   BT   PR   CT   TAT   WT   RT  
+  P1    0    8    3    17   17    9    0   
+  P2    1    4    1    5    4     0    0   
+  P3    2    9    4    26   24    15   15  
+  P4    3    5    2    10   7     2    2   
+
+  Average waiting time    : 6.50
+  Average turnaround time : 13.00
+  Average response time   : 4.25
+  CPU utilization         : 100.00%  (busy 26, idle 0, total 26)
+  CPU usage               : [####################]
+
+==================== Round Robin (quantum = 3) ====================
+Gantt chart:
+  +------+------+------+------+------+----+------+----+
+  |  P1  |  P2  |  P3  |  P4  |  P1  | P2 |  P3  | P4 |
+  +------+------+------+------+------+----+------+----+
+  0      3      6      9      12     15   16     19   21
+  +----+------+
+  | P1 |  P3  |
+  +----+------+
+  21   23     26
+
+  PID   AT   BT   PR   CT   TAT   WT   RT  
+  P1    0    8    3    23   23    15   0   
+  P2    1    4    1    16   15    11   2   
+  P3    2    9    4    26   24    15   4   
+  P4    3    5    2    21   18    13   6   
+
+  Average waiting time    : 13.50
+  Average turnaround time : 20.00
+  Average response time   : 3.00
+  CPU utilization         : 100.00%  (busy 26, idle 0, total 26)
+  CPU usage               : [####################]
+
+=========== Comparison (RR quantum = 3) ===========
+  Algorithm                  Avg WT   Avg TAT  Avg RT   CPU %   
+  FCFS                       8.75     15.25    8.75     100.00  
+  SJF (Non-preemptive)       7.75     14.25    7.75     100.00  
+  SJF (Preemptive / SRTF)    6.50     13.00    4.25     100.00  
+  Priority (Non-preemptive)  7.75     14.25    7.75     100.00  
+  Priority (Preemptive)      6.50     13.00    4.25     100.00  
+  Round Robin                13.50    20.00    3.00     100.00  
+
+
+##########################################################
+# Test case 2: CPU idle at the start and in the middle
+##########################################################
+
+Processes (lower priority number = higher priority):
+  PID   Arrival  Burst  Priority
+  P1    2        6      3       
+  P2    3        2      1       
+  P3    4        4      2       
+  P4    16       3      2       
+  P5    17       1      1       
+
+
+==================== FCFS ====================
+Gantt chart:
+  +------+------------+----+--------+------+------+----+
+  | IDLE |     P1     | P2 |   P3   | IDLE |  P4  | P5 |
+  +------+------------+----+--------+------+------+----+
+  0      2            8    10       14     16     19   20
+
+  PID   AT   BT   PR   CT   TAT   WT   RT  
+  P1    2    6    3    8    6     0    0   
+  P2    3    2    1    10   7     5    5   
+  P3    4    4    2    14   10    6    6   
+  P4    16   3    2    19   3     0    0   
+  P5    17   1    1    20   3     2    2   
+
+  Average waiting time    : 2.60
+  Average turnaround time : 5.80
+  Average response time   : 2.60
+  CPU utilization         : 80.00%  (busy 16, idle 4, total 20)
+  CPU usage               : [################....]
+
+==================== SJF (Non-preemptive) ====================
+Gantt chart:
+  +------+------------+----+--------+------+------+----+
+  | IDLE |     P1     | P2 |   P3   | IDLE |  P4  | P5 |
+  +------+------------+----+--------+------+------+----+
+  0      2            8    10       14     16     19   20
+
+  PID   AT   BT   PR   CT   TAT   WT   RT  
+  P1    2    6    3    8    6     0    0   
+  P2    3    2    1    10   7     5    5   
+  P3    4    4    2    14   10    6    6   
+  P4    16   3    2    19   3     0    0   
+  P5    17   1    1    20   3     2    2   
+
+  Average waiting time    : 2.60
+  Average turnaround time : 5.80
+  Average response time   : 2.60
+  CPU utilization         : 80.00%  (busy 16, idle 4, total 20)
+  CPU usage               : [################....]
+
+==================== SJF (Preemptive / SRTF) ====================
+Gantt chart:
+  +------+----+----+--------+----------+------+----+----+
+  | IDLE | P1 | P2 |   P3   |    P1    | IDLE | P4 | P5 |
+  +------+----+----+--------+----------+------+----+----+
+  0      2    3    5        9          14     16   17   18
+  +----+
+  | P4 |
+  +----+
+  18   20
+
+  PID   AT   BT   PR   CT   TAT   WT   RT  
+  P1    2    6    3    14   12    6    0   
+  P2    3    2    1    5    2     0    0   
+  P3    4    4    2    9    5     1    1   
+  P4    16   3    2    20   4     1    0   
+  P5    17   1    1    18   1     0    0   
+
+  Average waiting time    : 1.60
+  Average turnaround time : 4.80
+  Average response time   : 0.20
+  CPU utilization         : 80.00%  (busy 16, idle 4, total 20)
+  CPU usage               : [################....]
+
+==================== Priority (Non-preemptive) ====================
+Gantt chart:
+  +------+------------+----+--------+------+------+----+
+  | IDLE |     P1     | P2 |   P3   | IDLE |  P4  | P5 |
+  +------+------------+----+--------+------+------+----+
+  0      2            8    10       14     16     19   20
+
+  PID   AT   BT   PR   CT   TAT   WT   RT  
+  P1    2    6    3    8    6     0    0   
+  P2    3    2    1    10   7     5    5   
+  P3    4    4    2    14   10    6    6   
+  P4    16   3    2    19   3     0    0   
+  P5    17   1    1    20   3     2    2   
+
+  Average waiting time    : 2.60
+  Average turnaround time : 5.80
+  Average response time   : 2.60
+  CPU utilization         : 80.00%  (busy 16, idle 4, total 20)
+  CPU usage               : [################....]
+
+==================== Priority (Preemptive) ====================
+Gantt chart:
+  +------+----+----+--------+----------+------+----+----+
+  | IDLE | P1 | P2 |   P3   |    P1    | IDLE | P4 | P5 |
+  +------+----+----+--------+----------+------+----+----+
+  0      2    3    5        9          14     16   17   18
+  +----+
+  | P4 |
+  +----+
+  18   20
+
+  PID   AT   BT   PR   CT   TAT   WT   RT  
+  P1    2    6    3    14   12    6    0   
+  P2    3    2    1    5    2     0    0   
+  P3    4    4    2    9    5     1    1   
+  P4    16   3    2    20   4     1    0   
+  P5    17   1    1    18   1     0    0   
+
+  Average waiting time    : 1.60
+  Average turnaround time : 4.80
+  Average response time   : 0.20
+  CPU utilization         : 80.00%  (busy 16, idle 4, total 20)
+  CPU usage               : [################....]
+
+==================== Round Robin (quantum = 3) ====================
+Gantt chart:
+  +------+------+----+------+------+----+------+------+
+  | IDLE |  P1  | P2 |  P3  |  P1  | P3 | IDLE |  P4  |
+  +------+------+----+------+------+----+------+------+
+  0      2      5    7      10     13   14     16     19
+  +----+
+  | P5 |
+  +----+
+  19   20
+
+  PID   AT   BT   PR   CT   TAT   WT   RT  
+  P1    2    6    3    13   11    5    0   
+  P2    3    2    1    7    4     2    2   
+  P3    4    4    2    14   10    6    3   
+  P4    16   3    2    19   3     0    0   
+  P5    17   1    1    20   3     2    2   
+
+  Average waiting time    : 3.00
+  Average turnaround time : 6.20
+  Average response time   : 1.40
+  CPU utilization         : 80.00%  (busy 16, idle 4, total 20)
+  CPU usage               : [################....]
+
+=========== Comparison (RR quantum = 3) ===========
+  Algorithm                  Avg WT   Avg TAT  Avg RT   CPU %   
+  FCFS                       2.60     5.80     2.60     80.00   
+  SJF (Non-preemptive)       2.60     5.80     2.60     80.00   
+  SJF (Preemptive / SRTF)    1.60     4.80     0.20     80.00   
+  Priority (Non-preemptive)  2.60     5.80     2.60     80.00   
+  Priority (Preemptive)      1.60     4.80     0.20     80.00   
+  Round Robin                3.00     6.20     1.40     80.00   
+
+
+##########################################################
+# Test case 3: everything arrives at time 0
+##########################################################
+
+Processes (lower priority number = higher priority):
+  PID   Arrival  Burst  Priority
+  P1    0        10     3       
+  P2    0        1      1       
+  P3    0        2      4       
+  P4    0        1      5       
+  P5    0        5      2       
+
+
+==================== FCFS ====================
+Gantt chart:
+  +--------------+----+----+----+----------+
+  |      P1      | P2 | P3 | P4 |    P5    |
+  +--------------+----+----+----+----------+
+  0              10   11   13   14         19
+
+  PID   AT   BT   PR   CT   TAT   WT   RT  
+  P1    0    10   3    10   10    0    0   
+  P2    0    1    1    11   11    10   10  
+  P3    0    2    4    13   13    11   11  
+  P4    0    1    5    14   14    13   13  
+  P5    0    5    2    19   19    14   14  
+
+  Average waiting time    : 9.60
+  Average turnaround time : 13.40
+  Average response time   : 9.60
+  CPU utilization         : 100.00%  (busy 19, idle 0, total 19)
+  CPU usage               : [####################]
+
+==================== SJF (Non-preemptive) ====================
+Gantt chart:
+  +----+----+----+----------+--------------+
+  | P2 | P4 | P3 |    P5    |      P1      |
+  +----+----+----+----------+--------------+
+  0    1    2    4          9              19
+
+  PID   AT   BT   PR   CT   TAT   WT   RT  
+  P1    0    10   3    19   19    9    9   
+  P2    0    1    1    1    1     0    0   
+  P3    0    2    4    4    4     2    2   
+  P4    0    1    5    2    2     1    1   
+  P5    0    5    2    9    9     4    4   
+
+  Average waiting time    : 3.20
+  Average turnaround time : 7.00
+  Average response time   : 3.20
+  CPU utilization         : 100.00%  (busy 19, idle 0, total 19)
+  CPU usage               : [####################]
+
+==================== SJF (Preemptive / SRTF) ====================
+Gantt chart:
+  +----+----+----+----------+--------------+
+  | P2 | P4 | P3 |    P5    |      P1      |
+  +----+----+----+----------+--------------+
+  0    1    2    4          9              19
+
+  PID   AT   BT   PR   CT   TAT   WT   RT  
+  P1    0    10   3    19   19    9    9   
+  P2    0    1    1    1    1     0    0   
+  P3    0    2    4    4    4     2    2   
+  P4    0    1    5    2    2     1    1   
+  P5    0    5    2    9    9     4    4   
+
+  Average waiting time    : 3.20
+  Average turnaround time : 7.00
+  Average response time   : 3.20
+  CPU utilization         : 100.00%  (busy 19, idle 0, total 19)
+  CPU usage               : [####################]
+
+==================== Priority (Non-preemptive) ====================
+Gantt chart:
+  +----+----------+--------------+----+----+
+  | P2 |    P5    |      P1      | P3 | P4 |
+  +----+----------+--------------+----+----+
+  0    1          6              16   18   19
+
+  PID   AT   BT   PR   CT   TAT   WT   RT  
+  P1    0    10   3    16   16    6    6   
+  P2    0    1    1    1    1     0    0   
+  P3    0    2    4    18   18    16   16  
+  P4    0    1    5    19   19    18   18  
+  P5    0    5    2    6    6     1    1   
+
+  Average waiting time    : 8.20
+  Average turnaround time : 12.00
+  Average response time   : 8.20
+  CPU utilization         : 100.00%  (busy 19, idle 0, total 19)
+  CPU usage               : [####################]
+
+==================== Priority (Preemptive) ====================
+Gantt chart:
+  +----+----------+--------------+----+----+
+  | P2 |    P5    |      P1      | P3 | P4 |
+  +----+----------+--------------+----+----+
+  0    1          6              16   18   19
+
+  PID   AT   BT   PR   CT   TAT   WT   RT  
+  P1    0    10   3    16   16    6    6   
+  P2    0    1    1    1    1     0    0   
+  P3    0    2    4    18   18    16   16  
+  P4    0    1    5    19   19    18   18  
+  P5    0    5    2    6    6     1    1   
+
+  Average waiting time    : 8.20
+  Average turnaround time : 12.00
+  Average response time   : 8.20
+  CPU utilization         : 100.00%  (busy 19, idle 0, total 19)
+  CPU usage               : [####################]
+
+==================== Round Robin (quantum = 3) ====================
+Gantt chart:
+  +------+----+----+----+------+------+----+--------+
+  |  P1  | P2 | P3 | P4 |  P5  |  P1  | P5 |   P1   |
+  +------+----+----+----+------+------+----+--------+
+  0      3    4    6    7      10     13   15       19
+
+  PID   AT   BT   PR   CT   TAT   WT   RT  
+  P1    0    10   3    19   19    9    0   
+  P2    0    1    1    4    4     3    3   
+  P3    0    2    4    6    6     4    4   
+  P4    0    1    5    7    7     6    6   
+  P5    0    5    2    15   15    10   7   
+
+  Average waiting time    : 6.40
+  Average turnaround time : 10.20
+  Average response time   : 4.00
+  CPU utilization         : 100.00%  (busy 19, idle 0, total 19)
+  CPU usage               : [####################]
+
+=========== Comparison (RR quantum = 3) ===========
+  Algorithm                  Avg WT   Avg TAT  Avg RT   CPU %   
+  FCFS                       9.60     13.40    9.60     100.00  
+  SJF (Non-preemptive)       3.20     7.00     3.20     100.00  
+  SJF (Preemptive / SRTF)    3.20     7.00     3.20     100.00  
+  Priority (Non-preemptive)  8.20     12.00    8.20     100.00  
+  Priority (Preemptive)      8.20     12.00    8.20     100.00  
+  Round Robin                6.40     10.20    4.00     100.00  
