@@ -1,0 +1,14 @@
+# compiled binaries
+/integrator
+/standalone
+/ui
+/core
+/logger
+
+# run output
+*.log
+*.o
+
+# leftover IPC files (just in case)
+*.sock
+*.fifo
