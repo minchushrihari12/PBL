@@ -1,5 +1,5 @@
-ui
-core
-logger
-test_scheduler
-*.log
+scheduler
+fcfs_rr_worker
+sjf_worker
+prio_worker
+*.o
