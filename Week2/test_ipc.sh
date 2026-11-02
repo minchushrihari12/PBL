@@ -1,6 +1,6 @@
 #!/bin/bash
 # IPC test cases. Run from repo root: make test   (use `make real` first to test real code)
-cd "$(dirname "$0")/.." || exit 1
+cd "$(dirname "$0")" || exit 1
 N=$(grep N_CMDS ipc_defs.h | awk '{print $3}')
 rm -f sim.log
 out=$(timeout 90 ./integrator 2>&1); rc=$?

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Standalone vs multi-process benchmark. Usage: bash tests/bench.sh [runs]
-cd "$(dirname "$0")/.." || exit 1
+cd "$(dirname "$0")" || exit 1
 RUNS=${1:-10}
 N=$(grep N_CMDS ipc_defs.h | awk '{print $3}')
 sa=(); mp=(); lat=()

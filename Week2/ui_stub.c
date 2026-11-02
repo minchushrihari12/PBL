@@ -3,7 +3,7 @@
 #include <fcntl.h>
 #include <mqueue.h>
 #include <sys/mman.h>
-#include "../ctrl_util.h"
+#include "ctrl_util.h"
 
 int main(void) {
     int s = ctrl_connect(PROC_UI);

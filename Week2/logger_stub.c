@@ -1,7 +1,7 @@
 /* TEST STUB for the Logger process (pipes/FIFO). Replace with the real logger.c. */
 #define _GNU_SOURCE
 #include <fcntl.h>
-#include "../ctrl_util.h"
+#include "ctrl_util.h"
 
 int main(void) {
     int s = ctrl_connect(PROC_LOGGER);

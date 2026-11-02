@@ -1,6 +1,6 @@
 #!/bin/bash
 # Full-system test with the starter UI/Core/Logger (scripted run, 19 commands).  make test-starters
-cd "$(dirname "$0")/.." || exit 1
+cd "$(dirname "$0")" || exit 1
 rm -f sim.log
 out=$(UI_AUTO=1 timeout 90 ./integrator 2>&1); rc=$?
 echo "$out"; echo "-----"
