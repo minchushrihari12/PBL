@@ -1,0 +1,49 @@
+-> 1 PUSH 1
+-> 2 PUSH 2
+-> 3 PUSH 3
+-> 4 PUSH 4
+-> 5 PUSH 5
+-> 6 POP
+-> 7 POP
+-> 8 ENQ 10
+-> 9 ENQ 11
+-> 10 ENQ 12
+-> 11 ENQ 13
+-> 12 ENQ 14
+  <- 1 OK pushed 1
+-> 13 DEQ
+  <- 2 OK pushed 2
+  <- 3 OK pushed 3
+  <- 4 OK pushed 4
+  <- 5 OK pushed 5
+-> 14 DEQ
+-> 15 LOAD 0 5
+-> 16 STEP
+-> 17 STEP
+-> 18 STEP
+-> 19 BAD
+  <- 6 OK popped 5
+  <- 7 OK popped 4
+  <- 8 OK enqueued 10
+  <- 9 OK enqueued 11
+  <- 10 OK enqueued 12
+  <- 11 OK enqueued 13
+  <- 12 OK enqueued 14
+  <- 13 OK dequeued 10
+  <- 14 OK dequeued 11
+  <- 15 OK mem[0]=5
+  <- 16 OK pc=1 acc=5
+  <- 17 OK pc=2 acc=5
+  <- 18 OK pc=3 acc=5
+  <- 19 ERR unknown command
+UI: replies 19/19, errors=1
+UI: snapshot pc=3 acc=5 sp=3 qcount=3 mem0=5
+LOGGER: 19 lines, 1 errors
+[integrator] Logger ready (pid 6118)
+[integrator] Core ready (pid 6117)
+[integrator] UI ready (pid 6116)
+[integrator] total run: 100.95 ms
+[metrics] UI     ipc_latency=144.91 us  cpu=1.30 ms  mem=1792 KB
+[metrics] Core   ipc_latency=0.00 us  cpu=0.99 ms  mem=1536 KB
+[metrics] Logger ipc_latency=0.00 us  cpu=1.09 ms  mem=1536 KB
+[integrator] clean exit

@@ -1,0 +1,66 @@
+gcc -Wall -Wextra -O2 -o integrator integrator.c -lrt -pthread
+gcc -Wall -Wextra -O2 -o standalone standalone.c -lrt -pthread
+gcc -Wall -Wextra -O2 -I. -o ui     ui.c     -lrt -pthread
+gcc -Wall -Wextra -O2 -I. -o core   core.c   -lrt -pthread
+gcc -Wall -Wextra -O2 -I. -o logger logger.c -lrt -pthread
+bash test_starters.sh
+-> 1 PUSH 1
+-> 2 PUSH 2
+-> 3 PUSH 3
+-> 4 PUSH 4
+-> 5 PUSH 5
+-> 6 POP
+-> 7 POP
+-> 8 ENQ 10
+-> 9 ENQ 11
+-> 10 ENQ 12
+-> 11 ENQ 13
+-> 12 ENQ 14
+-> 13 DEQ
+-> 14 DEQ
+-> 15 LOAD 0 5
+-> 16 STEP
+-> 17 STEP
+-> 18 STEP
+-> 19 BAD
+  <- 1 OK pushed 1
+  <- 2 OK pushed 2
+  <- 3 OK pushed 3
+  <- 4 OK pushed 4
+  <- 5 OK pushed 5
+  <- 6 OK popped 5
+  <- 7 OK popped 4
+  <- 8 OK enqueued 10
+  <- 9 OK enqueued 11
+  <- 10 OK enqueued 12
+  <- 11 OK enqueued 13
+  <- 12 OK enqueued 14
+  <- 13 OK dequeued 10
+  <- 14 OK dequeued 11
+  <- 15 OK mem[0]=5
+  <- 16 OK pc=1 acc=5
+  <- 17 OK pc=2 acc=5
+  <- 18 OK pc=3 acc=5
+  <- 19 ERR unknown command
+UI: replies 19/19, errors=1
+UI: snapshot pc=3 acc=5 sp=3 qcount=3 mem0=5
+LOGGER: 19 lines, 1 errors
+[integrator] UI ready (pid 5942)
+[integrator] Logger ready (pid 5944)
+[integrator] Core ready (pid 5943)
+[integrator] total run: 101.84 ms
+[metrics] UI     ipc_latency=426.30 us  cpu=1.27 ms  mem=1792 KB
+[metrics] Core   ipc_latency=0.00 us  cpu=1.03 ms  mem=1536 KB
+[metrics] Logger ipc_latency=0.00 us  cpu=1.03 ms  mem=1536 KB
+[integrator] clean exit
+-----
+PASS: T1 integrator exits cleanly (rc=0, no hang)
+PASS: T2 all 3 processes connected over socket
+PASS: T3 UI->Core (mq): 19/19 replies, 1 expected error
+PASS: T4 Core state in shm seen by UI (pc/acc/sp/queue)
+PASS: T5 Core->Logger (pipe): 19 log lines in sim.log
+PASS: T6 error logged exactly once
+PASS: T7 Logger summary matches
+PASS: T8 metrics received from all 3
+PASS: T9 no leftover IPC objects
+Passed 9, failed 0

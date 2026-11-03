@@ -1,9 +1,9 @@
 Benchmark: 1000 commands, 10 runs each
-Standalone avg total time : 0.27 ms
-Multi-process avg total   : 34.17 ms
-Avg IPC round trip (UI<->Core, mq): 33.87 us
+Standalone avg total time : 0.34 ms
+Multi-process avg total   : 34.33 ms
+Avg IPC round trip (UI<->Core, mq): 33.93 us
 --- last multi-process run (CPU / memory per process) ---
-[metrics] UI     ipc_latency=27.42 us  cpu=10.04 ms  mem=1536 KB
-[metrics] Core   ipc_latency=0.00 us  cpu=16.08 ms  mem=1408 KB
-[metrics] Logger ipc_latency=0.00 us  cpu=8.32 ms  mem=1280 KB
-[standalone] cpu=1.19 ms  mem=1496 KB  cmds=1000
+[metrics] UI     ipc_latency=29.94 us  cpu=9.90 ms  mem=1536 KB
+[metrics] Core   ipc_latency=0.00 us  cpu=15.71 ms  mem=1664 KB
+[metrics] Logger ipc_latency=0.00 us  cpu=8.06 ms  mem=1280 KB
+[standalone] cpu=1.11 ms  mem=1536 KB  cmds=1000
