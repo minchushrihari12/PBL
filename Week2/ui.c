@@ -1,15 +1,13 @@
-/* STARTER - UI process (message queues + 2 threads).
+/* UI process (message queues + 2 threads) - MENU VERSION.
  * Owner: Student 1.  Input thread -> mq_send(MQ_CMD); display thread <- mq_receive(MQ_REPLY).
- * Commands: PUSH n | POP | ENQ n | DEQ | LOAD addr val | STEP | show | quit
- * Run interactive:  ./integrator        Run scripted:  UI_AUTO=1 ./integrator
- * TODO (yours): nicer display (ncurses/ASCII boxes), more commands, input validation. */
+ * Interactive: numbered menu.   Scripted (used by tests): UI_AUTO=1 ./integrator
+ * Student 1: read this file, understand it, and extend it (colours, history, validation...). */
 #define _GNU_SOURCE
 #include <errno.h>
 #include <fcntl.h>
 #include <mqueue.h>
 #include <pthread.h>
 #include <stdatomic.h>
-#include <strings.h>
 #include <sys/mman.h>
 #include "ctrl_util.h"
 #include "sim_state.h"
@@ -22,48 +20,107 @@ static double t_sent[MAX_SEQ];
 static atomic_int sent, received, errors_seen, input_done;
 static double lat_total;                      /* written by display thread only */
 
-static void print_snapshot(void) {
+/* ---------- display of shared state (read from shared memory under lock) ---------- */
+static void draw_state(void) {
+    char stk[160] = "", que[160] = "", mem[200] = "";
     pthread_mutex_lock(&st->lock);
-    printf("  [state] cpu pc=%d acc=%ld | stack sp=%d top=%ld | queue count=%d | cmds=%ld errors=%ld\n",
-           st->cpu.pc, st->cpu.acc, st->sp, st->sp ? st->stack[st->sp - 1] : -1L,
-           st->qcount, st->cmds_done, st->errors);
+    for (int i = 0; i < st->sp; i++)
+        snprintf(stk + strlen(stk), sizeof stk - strlen(stk), "%ld ", st->stack[i]);
+    for (int i = 0; i < st->qcount; i++)
+        snprintf(que + strlen(que), sizeof que - strlen(que), "%ld ",
+                 st->queue[(st->qhead + i) % QUEUE_MAX]);
+    int shown = 0;
+    for (int i = 0; i < MEM_WORDS && shown < 8; i++)
+        if (st->mem[i]) { snprintf(mem + strlen(mem), sizeof mem - strlen(mem), "[%d]=%ld ", i, st->mem[i]); shown++; }
+    printf("\n  +------------------- SIMULATOR STATE -------------------\n");
+    printf("  | CPU     pc=%d  acc=%ld\n", st->cpu.pc, st->cpu.acc);
+    printf("  | STACK   [ %s]  top-last  (%d/%d)\n", stk, st->sp, STACK_MAX);
+    printf("  | QUEUE   front-> [ %s]  (%d/%d)\n", que, st->qcount, QUEUE_MAX);
+    printf("  | MEMORY  %s%s\n", shown ? mem : "(all zero)", shown == 8 ? "..." : "");
+    printf("  | commands executed=%ld  errors=%ld\n", st->cmds_done, st->errors);
+    printf("  +--------------------------------------------------------\n\n");
     pthread_mutex_unlock(&st->lock);
     fflush(stdout);
 }
 
+/* ---------- sending commands ---------- */
 static void send_cmd(const char *text) {
     int seq = atomic_fetch_add(&sent, 1) + 1;
     if (seq >= MAX_SEQ) { fprintf(stderr, "too many commands\n"); return; }
     char buf[MQ_MSG_SZ];
     snprintf(buf, sizeof buf, "%d %s", seq, text);
+    printf("-> %s\n", buf); fflush(stdout);      /* print BEFORE sending so the reply never appears first */
     t_sent[seq] = now_us();
     mq_send(q_cmd, buf, strlen(buf) + 1, 0);
-    printf("-> %s\n", buf); fflush(stdout);
+}
+
+/* wait (max 2 s) until every sent command has been answered, so output stays tidy */
+static void wait_replies(void) {
+    for (int i = 0; i < 2000 && atomic_load(&received) < atomic_load(&sent); i++) usleep(1000);
+}
+
+static void run_script(void) {
+    static const char *script[] = {
+        "PUSH 1", "PUSH 2", "PUSH 3", "PUSH 4", "PUSH 5", "POP", "POP",
+        "ENQ 10", "ENQ 11", "ENQ 12", "ENQ 13", "ENQ 14", "DEQ", "DEQ",
+        "LOAD 0 5", "STEP", "STEP", "STEP", "BAD", NULL };
+    for (int i = 0; script[i]; i++) send_cmd(script[i]);
+}
+
+/* ---------- menu ---------- */
+static void print_menu(void) {
+    puts("===================== SIMULATOR =====================");
+    puts("  1. Push to stack        5. Load memory (addr, value)");
+    puts("  2. Pop from stack       6. Step CPU");
+    puts("  3. Enqueue              7. Show state");
+    puts("  4. Dequeue              8. Run demo script");
+    puts("  0. Quit");
+    printf("Choice: "); fflush(stdout);
+}
+
+static int ask_long(const char *prompt, long *out) {
+    char line[64], *end;
+    printf("%s", prompt); fflush(stdout);
+    if (!fgets(line, sizeof line, stdin)) return 0;
+    *out = strtol(line, &end, 10);
+    if (end == line) { puts("  Invalid number."); return 0; }
+    return 1;
 }
 
 static void *input_thread(void *arg) {
     (void)arg;
     if (getenv("UI_AUTO")) {
-        static const char *script[] = {
-            "PUSH 1", "PUSH 2", "PUSH 3", "PUSH 4", "PUSH 5", "POP", "POP",
-            "ENQ 10", "ENQ 11", "ENQ 12", "ENQ 13", "ENQ 14", "DEQ", "DEQ",
-            "LOAD 0 5", "STEP", "STEP", "STEP", "BAD", NULL };
-        for (int i = 0; script[i]; i++) send_cmd(script[i]);
+        run_script();
     } else {
-        char line[128];
-        puts("Commands: PUSH n | POP | ENQ n | DEQ | LOAD addr val | STEP | show | quit");
-        while (printf("> "), fflush(stdout), fgets(line, sizeof line, stdin)) {
-            line[strcspn(line, "\r\n")] = 0;
-            if (!*line) continue;
-            if (!strcasecmp(line, "quit")) break;
-            if (!strcasecmp(line, "show")) { print_snapshot(); continue; }
-            send_cmd(line);
+        char line[64], cmd[64];
+        for (;;) {
+            print_menu();
+            if (!fgets(line, sizeof line, stdin)) break;       /* EOF = quit */
+            char *end; long c = strtol(line, &end, 10);
+            if (end == line) { puts("  Invalid choice."); continue; }
+            long a, b;
+            switch (c) {
+            case 0: goto done;
+            case 1: if (ask_long("  Value to push: ", &a))  { snprintf(cmd, sizeof cmd, "PUSH %ld", a); send_cmd(cmd); } break;
+            case 2: send_cmd("POP"); break;
+            case 3: if (ask_long("  Value to enqueue: ", &a)) { snprintf(cmd, sizeof cmd, "ENQ %ld", a); send_cmd(cmd); } break;
+            case 4: send_cmd("DEQ"); break;
+            case 5: if (ask_long("  Memory address (0-63): ", &a) && ask_long("  Value: ", &b)) {
+                        snprintf(cmd, sizeof cmd, "LOAD %ld %ld", a, b); send_cmd(cmd); } break;
+            case 6: send_cmd("STEP"); break;
+            case 7: draw_state(); break;
+            case 8: run_script(); break;
+            default: puts("  Invalid choice."); break;
+            }
+            wait_replies();
         }
     }
+done:
     atomic_store(&input_done, 1);
     return NULL;
 }
 
+/* ---------- reply display thread ---------- */
 static void *display_thread(void *arg) {
     (void)arg;
     char buf[MQ_MSG_SZ];
@@ -84,6 +141,7 @@ static void *display_thread(void *arg) {
         if (strstr(buf, " ERR")) atomic_fetch_add(&errors_seen, 1);
         printf("  <- %s\n", buf); fflush(stdout);
         atomic_fetch_add(&received, 1);
+        if (atomic_load(&input_done) && atomic_load(&received) >= atomic_load(&sent)) break;
     }
     return NULL;
 }
