@@ -12,10 +12,10 @@ Three C processes talk through **System V message queues**; the GUI runs in the 
 
 | Process | Files | Owner |
 |---|---|---|
-| core | `core.c`, `deadlock.c`, `deadlock.h`, `test_deadlock.c` | Core teammate |
-| ui | `ui.c`, `gui/index.html` | UI teammate |
-| logger | `logger.c` | Logger teammate |
-| integration | `ipc_defs.h`, `Makefile`, `run.sh`, `README.md` | Integrator |
+| core | `core.c`, `deadlock.c`, `deadlock.h`, `test_deadlock.c` | Vignesh |
+| ui | `ui.c`, `gui/index.html` | Reyan |
+| logger | `logger.c` | Ananya |
+| integration | `ipc_defs.h`, `Makefile`, `run.sh`, `README.md` | Minchu |
 
 ## Run it
 
