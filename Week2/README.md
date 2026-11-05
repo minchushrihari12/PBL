@@ -1,4 +1,4 @@
-# Week 4: Multi-Process Simulator & IPC (C / POSIX)
+# Week 2: Multi-Process Simulator & IPC (C / POSIX)
 
 A simulator split into **three independent processes** (UI, Core, Logger) plus an **Integrator** that launches and supervises them. Each process talks over a different POSIX IPC mechanism.
 
