@@ -22,11 +22,10 @@ process WT/TAT/RT, averages, CPU utilization).
 | `common.h`, `common.c` | Integrator | shared structs, queue helpers, metrics, worker loop |
 | `main.c` | Integrator | menu, input, random generation, test cases, Gantt/table output, comparison table |
 | `Makefile` | Integrator | build rules |
-| `fcfs_rr_worker.c` | Teammate 1 | FCFS and Round Robin |
-| `sjf_worker.c` | Teammate 2 | SJF non-preemptive and preemptive (SRTF) |
-| `prio_worker.c` | Teammate 3 | Priority non-preemptive and preemptive |
+| `fcfs_rr_worker.c` | Ananya | FCFS and Round Robin |
+| `sjf_worker.c` | Vignesh | SJF non-preemptive and preemptive (SRTF) |
+| `prio_worker.c` | Reyan | Priority non-preemptive and preemptive |
 | `sample_output.txt` | Integrator | output of `make sample` (3 test cases x 6 algorithms) |
-| `REPORT.md` | everyone | analysis (each teammate fills in their part) |
 
 ## Build and run
 
